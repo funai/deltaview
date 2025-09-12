@@ -1,6 +1,6 @@
 {
   "name": "deltaview",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Visual diffing tool that creates block-by-block comparisons of two images.",
   "main": "dist/index.js",
   "bin": {
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/funai/delta-view.git"
+    "url": "git+https://github.com/funai/deltaview.git"
   },
   "keywords": [
     "cli",
