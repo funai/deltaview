@@ -1,0 +1,41 @@
+{
+  "name": "deltaview",
+  "version": "1.0.0",
+  "description": "Visual diffing tool that creates block-by-block comparisons of two images.",
+  "main": "dist/index.js",
+  "bin": {
+    "deltaview": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/funai/delta-view.git"
+  },
+  "keywords": [
+    "cli",
+    "diff",
+    "image"
+  ],
+  "author": "Jun FUNAI",
+  "license": "MIT",
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "bugs": {
+    "url": "https://github.com/funai/deltaview/issues"
+  },
+  "homepage": "https://github.com/funai/deltaview#readme",
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "pixelmatch": "^7.1.0",
+    "sharp": "^0.34.3"
+  }
+}
