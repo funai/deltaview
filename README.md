@@ -4,7 +4,7 @@ A sophisticated visual diffing tool **specially crafted for optimal visual diff 
 
 ## The Webpage Screenshot Problem
 
-Traditional image diffing tools struggle with webpage screenshots because they perform pixel-by-pixel comparisons. This creates a critical issue: **when a full-width element is inserted or removed from a webpage, all pixels below that element shift vertically, causing the entire lower portion of the image to be marked as "different" even though the content is identical — just repositioned**.
+Traditional image diffing tools struggle with webpage screenshots because they perform pixel-by-pixel comparisons. This creates a critical issue: when a full-width element is inserted or removed from a webpage, all pixels below that element shift vertically, causing the entire lower portion of the image to be marked as "different" even though the content is identical — just repositioned.
 
 Delta View solves this by treating each row of pixels as a "line" and using Git's intelligent diff algorithms to detect content that has moved rather than changed, producing clean, readable diffs that highlight actual content changes rather than mere positional shifts.
 
@@ -32,7 +32,6 @@ npx deltaview img1.png img2.png
 
 # Or install globally for repeated use
 npm install -g deltaview
-deltaview img1.png img2.png --output out.diff
 ```
 
 ## Usage
@@ -50,8 +49,8 @@ bunx deltaview <image1> <image2> --output <output> [options]
 
 ### Required Arguments
 
-- `image1`: First image for comparison (any format supported by Sharp)
-- `image2`: Second image for comparison
+- `image1`: First (before or base) image for comparison (any format supported by Sharp)
+- `image2`: Second (after or test) image for comparison
 
 ### Optional Flags
 
@@ -137,26 +136,6 @@ npx deltaview img1.png img2.png --output diff.png --algorithm perceptual --thres
 - Compare rendered outputs
 - Validate design implementations
 
-## Why Delta View Works Better for Webpage Screenshots
-
-**Traditional approach problems:**
-```
-Page 1: [Header][Content A][Content B][Footer]
-Page 2: [Header][NEW ELEMENT][Content A][Content B][Footer]
-         ↓
-Traditional diff: Everything below NEW ELEMENT marked as "changed"
-```
-
-**Delta View solution:**
-```
-Page 1: [Header][Content A][Content B][Footer]
-Page 2: [Header][NEW ELEMENT][Content A][Content B][Footer]
-         ↓
-Delta View: Only NEW ELEMENT marked as "inserted", rest recognized as moved
-```
-
-This line-based approach with Git's diff algorithm recognizes that content has shifted rather than changed, producing clean, actionable visual diffs.
-
 ## Advanced Options
 
 ### Merge Threshold
@@ -189,12 +168,6 @@ Fine-tune perceptual algorithm sensitivity:
 2. **Diff Calculation**: Uses Git's histogram algorithm to find optimal change sequences
 3. **Block Processing**: Generates visual blocks for equal, insert, delete, and replace operations
 4. **Image Composition**: Combines blocks with appropriate color overlays and effects
-
-### Performance
-
-- **Exact algorithm**: ~50-100 images/second (depending on size)
-- **Perceptual algorithm**: ~20-30 images/second
-- **Memory usage**: Proportional to image height, optimized for large images
 
 ### Supported Formats
 
@@ -231,7 +204,6 @@ Output format:
 1. **Use appropriate algorithm**: Exact for precision, perceptual for screenshots
 2. **Resize large images**: Scale down for faster processing when pixel-perfect accuracy isn't needed
 3. **PNG output**: Use PNG for diff images to preserve all visual information
-4. **Batch processing**: Process multiple comparisons sequentially to avoid memory issues
 
 ## Contributing
 
