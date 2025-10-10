@@ -13,7 +13,6 @@ Delta View solves this by treating each row of pixels as a "line" and using Git'
 - **Line-by-line Analysis**: Treats each row of pixels as a "line" for intelligent diff detection
 - **Git Diff Integration**: Uses Git's histogram algorithm for optimal change sequence detection
 - **Webpage-Optimized**: Handles vertical content shifts gracefully (insertions, deletions, reordering)
-- **Multiple Algorithms**: Choose between exact pixel matching or perceptual similarity
 - **Color-coded Changes**: Visual highlighting with blue (deletions), red (insertions), and pixel-level diffs
 
 ## Installation
@@ -154,7 +153,6 @@ Output format:
 
 This tool combines computer vision techniques with Git's proven diff algorithms specifically to solve the webpage screenshot diffing problem. Contributions welcome for:
 
-- Additional perceptual algorithms
 - Performance optimizations
 - Output format options
 - Integration with other diff tools
