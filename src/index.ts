@@ -16,8 +16,6 @@ type Opcode = ['equal' | 'insert' | 'delete' | 'replace', number, number, number
 
 // Options for the visual diff algorithm
 interface VisualDiffOptions {
-    algorithm?: 'exact' | 'perceptual';
-    threshold?: number;
     output?: string;
     mergeThreshold?: number;
 }
@@ -41,70 +39,16 @@ function exactLineHashes(img: RawImage): string[] {
     return hashes;
 }
 
-/**
- * Generates perceptual hashes for each row using a simplified approach.
- * This implementation uses average color values and edge detection.
- */
-function perceptualLineHashes(img: RawImage, threshold = 0.1): string[] {
-    const hashes: string[] = [];
-    const { data, info } = img;
-    const { width, channels } = info;
-    const stride = width * channels;
 
-    for (let y = 0; y < info.height; y++) {
-        const start = y * stride;
-        const end = start + stride;
-        const row = data.slice(start, end);
-        
-        // Calculate average RGB values
-        let r = 0, g = 0, b = 0, count = 0;
-        for (let i = 0; i < row.length; i += channels) {
-            r += row[i];
-            g += row[i + 1];
-            b += row[i + 2];
-            count++;
-        }
-        
-        if (count > 0) {
-            r = Math.round(r / count / 16) * 16; // Quantize to reduce sensitivity
-            g = Math.round(g / count / 16) * 16;
-            b = Math.round(b / count / 16) * 16;
-        }
-        
-        // Simple edge detection - count significant color changes
-        let edges = 0;
-        for (let i = 0; i < row.length - channels; i += channels) {
-            const dr = Math.abs(row[i] - row[i + channels]);
-            const dg = Math.abs(row[i + 1] - row[i + channels + 1]);
-            const db = Math.abs(row[i + 2] - row[i + channels + 2]);
-            if (dr + dg + db > 30) edges++;
-        }
-        
-        // Create hash from average colors and edge count
-        const perceptualData = `${r},${g},${b},${Math.floor(edges / 5)}`;
-        const hash = crypto.createHash('md5').update(perceptualData).digest('hex');
-        hashes.push(hash);
-    }
-    return hashes;
-}
 
 /**
  * Generates line hashes based on the selected algorithm.
  */
-function generateLineHashes(img1: RawImage, img2: RawImage, algorithm: string, threshold?: number): { hashes1: string[], hashes2: string[] } {
-    switch (algorithm) {
-        case 'perceptual':
-            return {
-                hashes1: perceptualLineHashes(img1, threshold),
-                hashes2: perceptualLineHashes(img2, threshold)
-            };
-        case 'exact':
-        default:
-            return {
-                hashes1: exactLineHashes(img1),
-                hashes2: exactLineHashes(img2)
-            };
-    }
+function generateLineHashes(img1: RawImage, img2: RawImage): { hashes1: string[], hashes2: string[] } {
+    return {
+        hashes1: exactLineHashes(img1),
+        hashes2: exactLineHashes(img2)
+    };
 }
 
 /**
@@ -318,8 +262,6 @@ async function visualDiff(
     options: VisualDiffOptions = {}
 ): Promise<void> {
     const {
-        algorithm = 'exact',
-        threshold,
         output = 'image-diff.png',
         mergeThreshold = 0
     } = options;
@@ -331,9 +273,9 @@ async function visualDiff(
 
     const width = Math.min(img1.info.width, img2.info.width);
 
-    console.log(`[*] Using algorithm: ${algorithm}${threshold ? ` (threshold: ${threshold})` : ''}`);
+    console.log(`[*] Using algorithm: exact`);
 
-    const { hashes1, hashes2 } = generateLineHashes(img1, img2, algorithm, threshold);
+    const { hashes1, hashes2 } = generateLineHashes(img1, img2);
 
     let opcodes = await gitDiffOpcodes(hashes1, hashes2);
 
@@ -431,14 +373,11 @@ async function main() {
         console.error(`  image1: First image for comparison (required)`);
         console.error(`  image2: Second image for comparison (required)`);
         console.error(`  --output <filename>: Output filename (default: image-diff.png)`);
-        console.error(`  --algorithm <algo>: Diff algorithm - exact|perceptual (default: exact)`);
-        console.error(`  --threshold <value>: Algorithm threshold for perceptual algorithm (0 to 1, default: 0.1)`);
         console.error(`  --merge-threshold <value>: Merge small changes threshold (height in px, default: 0)`);
         console.error(``);
         console.error(`Examples:`);
         console.error(`  ts-node delta-view.ts img1.png img2.png`);
         console.error(`  ts-node delta-view.ts img1.png img2.png --output diff.png`);
-        console.error(`  ts-node delta-view.ts img1.png img2.png --algorithm perceptual --threshold 0.05`);
         process.exit(1);
     }
 
@@ -447,7 +386,6 @@ async function main() {
     
     const options: VisualDiffOptions = {
         output: 'image-diff.png',
-        algorithm: 'exact',
         mergeThreshold: 0
     };
 
@@ -459,23 +397,6 @@ async function main() {
         switch (option) {
             case '--output':
                 options.output = value;
-                break;
-            case '--algorithm':
-                if (['exact', 'perceptual'].includes(value)) {
-                    options.algorithm = value as 'exact' | 'perceptual';
-                } else {
-                    console.error(`Invalid algorithm: ${value}`);
-                    process.exit(1);
-                }
-                break;
-            case '--threshold':
-                const threshold = parseFloat(value);
-                if (!isNaN(threshold)) {
-                    options.threshold = threshold;
-                } else {
-                    console.error(`Invalid threshold: ${value}`);
-                    process.exit(1);
-                }
                 break;
             case '--merge-threshold':
                 const mergeThreshold = parseInt(value, 10);

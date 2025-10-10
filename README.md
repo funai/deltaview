@@ -55,8 +55,6 @@ bunx deltaview <image1> <image2> --output <output> [options]
 ### Optional Flags
 
 - `--output <name>`: Filename for output image.
-- `--algorithm <algo>`: Choose diff algorithm (`exact` | `perceptual`, default: `exact`)
-- `--threshold <value>`: Algorithm-specific threshold (float, varies by algorithm)
 - `--merge-threshold <value>`: Merge small adjacent changes (integer, default: 0)
 
 ## Visual Output
@@ -75,47 +73,6 @@ The generated diff image uses consistent color coding:
 
 ### Image Width Matching
 **Both images should have the same width for optimal results.** If the images have different widths, every pixel line will be treated as different, which defeats the purpose of this tool's intelligent diff detection and will result in an unhelpful diff output.
-
-## Examples
-
-### Algorithm Options
-
-```bash
-# Use perceptual algorithm (good for screenshots with anti-aliasing)
-npx deltaview img1.png img2.png --output diff.png --algorithm perceptual
-
-# Perceptual with custom sensitivity
-npx deltaview img1.png img2.png --output diff.png --algorithm perceptual --threshold 0.05
-
-# Merge small adjacent changes
-npx deltaview img1.png img2.png --output diff.png --merge-threshold 10
-```
-
-## Algorithms
-
-### Exact Algorithm
-
-- **Method**: MD5 hash comparison of each pixel row
-- **Speed**: Very fast
-- **Sensitivity**: Detects any pixel change
-- **Output characteristic**: **Likely to output larger consecutive diff blocks optimal for human inspection**
-
-```bash
-npx deltaview img1.png img2.png --output diff.png --algorithm exact
-```
-
-### Perceptual Algorithm
-
-- **Method**: Quantized color averaging + edge detection per row
-- **Speed**: Moderate (2-3x slower than exact)
-- **Sensitivity**: Ignores minor rendering differences (anti-aliasing, font hinting)
-- **Default threshold**: 0.1
-- **Output characteristic**: **Tends to output shredded and scattered thin diff blocks**
-
-```bash
-# Recommended for most webpage screenshot comparisons
-npx deltaview img1.png img2.png --output diff.png --algorithm perceptual --threshold 0.1
-```
 
 ## Use Cases
 
@@ -152,19 +109,9 @@ npx deltaview img1.png img2.png --output diff.png --merge-threshold 10
 
 **Recommendation**: Keep at 0 for most image comparisons, as spatial precision is important for visual diffs.
 
-### Perceptual Thresholds
-
-Fine-tune perceptual algorithm sensitivity:
-
-- `0.01-0.05`: High sensitivity (detects subtle differences)
-- `0.1`: Default (good balance for webpage screenshots)
-- `0.2-0.5`: Low sensitivity (ignores minor variations)
-
-## Technical Details
-
 ### How It Works
 
-1. **Line Hashing**: Each pixel row is converted to a hash (exact) or perceptual signature
+1. **Line Hashing**: Each pixel row is converted to an MD5 hash.
 2. **Diff Calculation**: Uses Git's histogram algorithm to find optimal change sequences
 3. **Block Processing**: Generates visual blocks for equal, insert, delete, and replace operations
 4. **Image Composition**: Combines blocks with appropriate color overlays and effects
@@ -197,13 +144,11 @@ Output format:
 
 **Poor diff results**
 - **Ensure both images have the same width** - different widths will cause every line to be marked as different
-- Use perceptual algorithm for screenshots with minor rendering differences
 
 ### Performance Tips
 
-1. **Use appropriate algorithm**: Exact for precision, perceptual for screenshots
-2. **Resize large images**: Scale down for faster processing when pixel-perfect accuracy isn't needed
-3. **PNG output**: Use PNG for diff images to preserve all visual information
+1. **Resize large images**: Scale down for faster processing when pixel-perfect accuracy isn't needed
+2. **PNG output**: Use PNG for diff images to preserve all visual information
 
 ## Contributing
 
