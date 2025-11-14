@@ -7,6 +7,8 @@ import { exec } from 'child_process';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 
 // A type for raw image data and its metadata
 type RawImage = { data: Buffer; info: sharp.OutputInfo };
@@ -17,7 +19,9 @@ type Opcode = ['equal' | 'insert' | 'delete' | 'replace', number, number, number
 // Options for the visual diff algorithm
 interface VisualDiffOptions {
     output?: string;
-    mergeThreshold?: number;
+    diffAlgorithm?: 'myers' | 'minimal' | 'patience' | 'histogram';
+    threshold?: number;
+    includeAA?: boolean;
 }
 
 /**
@@ -103,7 +107,7 @@ async function grayscaleWithColorOverlay(imgBuffer: Buffer, width: number, heigh
  * Compares two image blocks using pixelmatch and composites the resulting diff
  * onto a clone of the second block.
  */
-async function perPixelDiffBlock(block1: RawImage, block2: RawImage): Promise<Buffer> {
+async function perPixelDiffBlock(block1: RawImage, block2: RawImage, pixelmatchOptions: { threshold: number, includeAA: boolean }): Promise<Buffer> {
     const { width, height } = block1.info;
     const diffBuffer = Buffer.alloc(width * height * 4);
 
@@ -113,7 +117,7 @@ async function perPixelDiffBlock(block1: RawImage, block2: RawImage): Promise<Bu
         diffBuffer,
         width,
         height,
-        { threshold: 0.1, includeAA: true }
+        pixelmatchOptions
     );
 
     return sharp(block2.data, { raw: { width, height, channels: 4 } })
@@ -172,7 +176,7 @@ function parseGitDiff(diffOutput: string, len1: number, len2: number): Opcode[] 
 /**
  * Uses git diff to get opcodes.
  */
-async function gitDiffOpcodes(hashes1: string[], hashes2: string[]): Promise<Opcode[]> {
+async function gitDiffOpcodes(hashes1: string[], hashes2: string[], algorithm: VisualDiffOptions['diffAlgorithm']): Promise<Opcode[]> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'delta-view-'));
     const file1Path = path.join(tempDir, 'file1.txt');
     const file2Path = path.join(tempDir, 'file2.txt');
@@ -181,7 +185,7 @@ async function gitDiffOpcodes(hashes1: string[], hashes2: string[]): Promise<Opc
         await fs.writeFile(file1Path, hashes1.join('\n'));
         await fs.writeFile(file2Path, hashes2.join('\n'));
 
-        const command = `git diff --no-index --diff-algorithm=histogram --unified=0 "${file1Path}" "${file2Path}"`;
+        const command = `git diff --no-index --diff-algorithm=${algorithm} --unified=0 "${file1Path}" "${file2Path}"`;
 
         return await new Promise<Opcode[]>((resolve, reject) => {
             exec(command, (error, stdout, stderr) => {
@@ -263,7 +267,9 @@ async function visualDiff(
 ): Promise<void> {
     const {
         output = 'image-diff.png',
-        mergeThreshold = 0
+        diffAlgorithm = 'histogram',
+        threshold = 0.1,
+        includeAA = false
     } = options;
 
     const [img1, img2] = await Promise.all([
@@ -273,15 +279,11 @@ async function visualDiff(
 
     const width = Math.min(img1.info.width, img2.info.width);
 
-    console.log(`[*] Using algorithm: exact`);
+    console.log(`[*] Using diff algorithm: ${diffAlgorithm}`);
 
     const { hashes1, hashes2 } = generateLineHashes(img1, img2);
 
-    let opcodes = await gitDiffOpcodes(hashes1, hashes2);
-
-    if (mergeThreshold > 0) {
-        opcodes = mergeSmallAlternatingChanges(opcodes, mergeThreshold);
-    }
+    let opcodes = await gitDiffOpcodes(hashes1, hashes2, diffAlgorithm);
 
     const blocks: { image: Buffer; height: number }[] = [];
 
@@ -318,7 +320,7 @@ async function visualDiff(
                     data: await sharp(img2.data, { raw: img2.info }).extract({ left: 0, top: b0, width, height: hmin }).toBuffer(),
                     info: { width, height: hmin, channels: 4, premultiplied: false, size: 0, format: 'raw' }
                 };
-                const diffBlock = await perPixelDiffBlock(block1, block2);
+                const diffBlock = await perPixelDiffBlock(block1, block2, { threshold, includeAA });
                 blocks.push({ image: diffBlock, height: hmin });
             }
 
@@ -367,54 +369,55 @@ async function visualDiff(
  * Main execution block.
  */
 async function main() {
-    const args = process.argv.slice(2);
-    if (args.length < 2) {
-        console.error(`Usage: deltaview <image1> <image2> [options]`);
-        console.error(`  image1: First image for comparison (required)`);
-        console.error(`  image2: Second image for comparison (required)`);
-        console.error(`  --output <filename>: Output filename (default: image-diff.png)`);
-        console.error(`  --merge-threshold <value>: Merge small changes threshold (height in px, default: 0)`);
-        console.error(``);
-        console.error(`Examples:`);
-        console.error(`  ts-node delta-view.ts img1.png img2.png`);
-        console.error(`  ts-node delta-view.ts img1.png img2.png --output diff.png`);
-        process.exit(1);
-    }
+    const argv = await yargs(hideBin(process.argv))
+        .command('$0 <image1> <image2>', 'Compare two images and generate a visual diff', (yargs) => {
+            return yargs
+                .positional('image1', {
+                    describe: 'First image to compare',
+                    type: 'string',
+                })
+                .positional('image2', {
+                    describe: 'Second image to compare',
+                    type: 'string',
+                });
+        })
+        .option('output', {
+            alias: 'o',
+            describe: 'Output filename for the diff image',
+            type: 'string',
+            default: 'image-diff.png',
+        })
+        .option('diff-algorithm', {
+            describe: 'The algorithm to use for the diff',
+            type: 'string',
+            choices: ['myers', 'minimal', 'patience', 'histogram'],
+            default: 'histogram',
+        })
+        .option('threshold', {
+            describe: 'Matching threshold for pixelmatch (0 to 1)',
+            type: 'number',
+            default: 0.1,
+        })
+        .option('include-aa', {
+            describe: 'Include anti-aliased pixels in the diff',
+            type: 'boolean',
+            default: false,
+        })
+        .help()
+        .alias('h', 'help')
+        .parse();
 
-    const image1 = args[0];
-    const image2 = args[1];
-    
+    const { image1, image2, output, diffAlgorithm, threshold, includeAa: includeAA } = argv;
+
     const options: VisualDiffOptions = {
-        output: 'image-diff.png',
-        mergeThreshold: 0
+        output,
+        diffAlgorithm: diffAlgorithm as VisualDiffOptions['diffAlgorithm'],
+        threshold,
+        includeAA,
     };
 
-    // Parse command line options
-    for (let i = 2; i < args.length; i += 2) {
-        const option = args[i];
-        const value = args[i + 1];
-
-        switch (option) {
-            case '--output':
-                options.output = value;
-                break;
-            case '--merge-threshold':
-                const mergeThreshold = parseInt(value, 10);
-                if (!isNaN(mergeThreshold)) {
-                    options.mergeThreshold = mergeThreshold;
-                } else {
-                    console.error(`Invalid merge threshold: ${value}`);
-                    process.exit(1);
-                }
-                break;
-            default:
-                console.error(`Unknown option: ${option}`);
-                process.exit(1);
-        }
-    }
-
     try {
-        await visualDiff(image1, image2, options);
+        await visualDiff(image1 as string, image2 as string, options);
     } catch (error) {
         console.error("An error occurred during image diffing:", error);
         process.exit(1);

@@ -51,10 +51,12 @@ bunx deltaview <image1> <image2> --output <output> [options]
 - `image1`: First (before or base) image for comparison (any format supported by Sharp)
 - `image2`: Second (after or test) image for comparison
 
-### Optional Flags
+### Options
 
-- `--output <name>`: Filename for output image.
-- `--merge-threshold <value>`: Merge small adjacent changes (integer, default: 0)
+- `--output <filename>`: Output filename for the diff image. (Default: `image-diff.png`)
+- `--diff-algorithm <name>`: The algorithm to use for the diff. (Choices: `myers`, `minimal`, `patience`, `histogram`, Default: `histogram`)
+- `--threshold <value>`: Matching threshold for pixelmatch (0 to 1). Smaller values are more sensitive. (Default: `0.1`)
+- `--include-aa`: A boolean flag to include anti-aliased pixels in the diff. By default, they are ignored.
 
 ## Visual Output
 
@@ -92,21 +94,7 @@ The generated diff image uses consistent color coding:
 - Compare rendered outputs
 - Validate design implementations
 
-## Advanced Options
 
-### Merge Threshold
-
-Controls whether small adjacent changes get merged into single replace operations:
-
-```bash
-# No merging (default, most precise)
-npx deltaview img1.png img2.png --output diff.png --merge-threshold 0
-
-# Merge changes affecting less than 10 lines
-npx deltaview img1.png img2.png --output diff.png --merge-threshold 10
-```
-
-**Recommendation**: Keep at 0 for most image comparisons, as spatial precision is important for visual diffs.
 
 ### How It Works
 
@@ -124,6 +112,16 @@ Input formats (via Sharp):
 
 Output format:
 - PNG (recommended for lossless diff preservation)
+
+## Changelog
+
+### v1.2 (Current)
+
+- **Refactored CLI**: Replaced basic argument parsing with `yargs` for a more robust and feature-rich command-line interface.
+- **Added `--diff-algorithm` option**: Allows specifying the `git diff` algorithm (`myers`, `minimal`, 'patience', `histogram`).
+- **Added `--threshold`**: Exposes the sensitivity threshold for `pixelmatch` comparisons.
+- **Added `--include-aa` option**: Adds a flag to include anti-aliased pixels in the comparison.
+- **Removed `--merge-threshold` option**: This option was removed to simplify the tool's focus on its core diffing strategy.
 
 ## Troubleshooting
 
