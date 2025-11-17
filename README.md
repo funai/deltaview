@@ -72,33 +72,15 @@ The generated diff image uses consistent color coding:
 ### Image Width Matching
 **Both images should have the same width for optimal results.** If the images have different widths, every pixel line will be treated as different, which defeats the purpose of this tool's intelligent diff detection and will result in an unhelpful diff output.
 
-## Use Cases
 
-### Web Development (Primary Use Case)
-- **Compare webpage screenshots before/after changes**: Handles content insertions, deletions, and reordering intelligently
-- **Visual regression testing**: Detects actual UI changes while ignoring positional shifts
-- **Cross-browser comparison**: Accounts for rendering differences between browsers
-- **Responsive design validation**: Compare layouts across different viewport sizes
-- **A/B testing visualization**: Highlight differences between page variants
-
-### Document Processing
-- Compare scanned document versions
-- Highlight changes in PDF renderings
-- Analyze form modifications
-
-### Quality Assurance
-- Visual testing for applications
-- Compare rendered outputs
-- Validate design implementations
-
-### How It Works
+## How It Works
 
 1. **Line Hashing**: Each pixel row is converted to an MD5 hash.
-2. **Diff Calculation**: Uses Git's histogram algorithm to find optimal change sequences
+2. **Diff Calculation**: Uses Git's algorithm (default: histogram) to find optimal change sequences
 3. **Block Processing**: Generates visual blocks for equal, insert, delete, and replace operations
 4. **Image Composition**: Combines blocks with appropriate color overlays and effects
 
-### Supported Formats
+## Supported Formats
 
 Input formats (via Sharp):
 - PNG, JPEG, WebP, TIFF, GIF
