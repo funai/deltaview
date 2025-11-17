@@ -39,11 +39,8 @@ npm install -g deltaview
 
 ```bash
 # Using NPM package
-npx deltaview <image1> <image2> --output <output> [options]
-deltaview <image1> <image2> --output <output> [options]  # if installed globally
-
-# or
-bunx deltaview <image1> <image2> --output <output> [options]
+npx deltaview <image1> <image2> [options]
+deltaview <image1> <image2> [options]  # if installed globally
 ```
 
 ### Required Arguments
@@ -54,7 +51,7 @@ bunx deltaview <image1> <image2> --output <output> [options]
 ### Options
 
 - `--output <filename>`: Output filename for the diff image. (Default: `image-diff.png`)
-- `--diff-algorithm <name>`: The algorithm to use for the diff. (Choices: `myers`, `minimal`, `patience`, `histogram`, Default: `histogram`)
+- `--diff <name>`: The algorithm to use for the diff. (Choices: `myers`, `minimal`, `patience`, `histogram`, Default: `histogram`)
 - `--threshold <value>`: Matching threshold for pixelmatch (0 to 1). Smaller values are more sensitive. (Default: `0.1`)
 - `--include-aa`: A boolean flag to include anti-aliased pixels in the diff. By default, they are ignored.
 
@@ -94,8 +91,6 @@ The generated diff image uses consistent color coding:
 - Compare rendered outputs
 - Validate design implementations
 
-
-
 ### How It Works
 
 1. **Line Hashing**: Each pixel row is converted to an MD5 hash.
@@ -112,16 +107,6 @@ Input formats (via Sharp):
 
 Output format:
 - PNG (recommended for lossless diff preservation)
-
-## Changelog
-
-### v1.2 (Current)
-
-- **Refactored CLI**: Replaced basic argument parsing with `yargs` for a more robust and feature-rich command-line interface.
-- **Added `--diff-algorithm` option**: Allows specifying the `git diff` algorithm (`myers`, `minimal`, 'patience', `histogram`).
-- **Added `--threshold`**: Exposes the sensitivity threshold for `pixelmatch` comparisons.
-- **Added `--include-aa` option**: Adds a flag to include anti-aliased pixels in the comparison.
-- **Removed `--merge-threshold` option**: This option was removed to simplify the tool's focus on its core diffing strategy.
 
 ## Troubleshooting
 
@@ -146,14 +131,6 @@ Output format:
 
 1. **Resize large images**: Scale down for faster processing when pixel-perfect accuracy isn't needed
 2. **PNG output**: Use PNG for diff images to preserve all visual information
-
-## Contributing
-
-This tool combines computer vision techniques with Git's proven diff algorithms specifically to solve the webpage screenshot diffing problem. Contributions welcome for:
-
-- Performance optimizations
-- Output format options
-- Integration with other diff tools
 
 ## License
 

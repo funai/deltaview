@@ -19,7 +19,7 @@ type Opcode = ['equal' | 'insert' | 'delete' | 'replace', number, number, number
 // Options for the visual diff algorithm
 interface VisualDiffOptions {
     output?: string;
-    diffAlgorithm?: 'myers' | 'minimal' | 'patience' | 'histogram';
+    diff?: 'myers' | 'minimal' | 'patience' | 'histogram';
     threshold?: number;
     includeAA?: boolean;
 }
@@ -176,7 +176,7 @@ function parseGitDiff(diffOutput: string, len1: number, len2: number): Opcode[] 
 /**
  * Uses git diff to get opcodes.
  */
-async function gitDiffOpcodes(hashes1: string[], hashes2: string[], algorithm: VisualDiffOptions['diffAlgorithm']): Promise<Opcode[]> {
+async function gitDiffOpcodes(hashes1: string[], hashes2: string[], diff: VisualDiffOptions['diff']): Promise<Opcode[]> {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'delta-view-'));
     const file1Path = path.join(tempDir, 'file1.txt');
     const file2Path = path.join(tempDir, 'file2.txt');
@@ -185,7 +185,7 @@ async function gitDiffOpcodes(hashes1: string[], hashes2: string[], algorithm: V
         await fs.writeFile(file1Path, hashes1.join('\n'));
         await fs.writeFile(file2Path, hashes2.join('\n'));
 
-        const command = `git diff --no-index --diff-algorithm=${algorithm} --unified=0 "${file1Path}" "${file2Path}"`;
+        const command = `git diff --no-index --diff-algorithm=${diff} --unified=0 "${file1Path}" "${file2Path}"`;
 
         return await new Promise<Opcode[]>((resolve, reject) => {
             exec(command, (error, stdout, stderr) => {
@@ -267,7 +267,7 @@ async function visualDiff(
 ): Promise<void> {
     const {
         output = 'image-diff.png',
-        diffAlgorithm = 'histogram',
+        diff = 'histogram',
         threshold = 0.1,
         includeAA = false
     } = options;
@@ -279,11 +279,11 @@ async function visualDiff(
 
     const width = Math.min(img1.info.width, img2.info.width);
 
-    console.log(`[*] Using diff algorithm: ${diffAlgorithm}`);
+    console.log(`[*] Using diff algorithm: ${diff}`);
 
     const { hashes1, hashes2 } = generateLineHashes(img1, img2);
 
-    let opcodes = await gitDiffOpcodes(hashes1, hashes2, diffAlgorithm);
+    let opcodes = await gitDiffOpcodes(hashes1, hashes2, diff);
 
     const blocks: { image: Buffer; height: number }[] = [];
 
@@ -387,7 +387,7 @@ async function main() {
             type: 'string',
             default: 'image-diff.png',
         })
-        .option('diff-algorithm', {
+        .option('diff', {
             describe: 'The algorithm to use for the diff',
             type: 'string',
             choices: ['myers', 'minimal', 'patience', 'histogram'],
@@ -407,11 +407,11 @@ async function main() {
         .alias('h', 'help')
         .parse();
 
-    const { image1, image2, output, diffAlgorithm, threshold, includeAa: includeAA } = argv;
+    const { image1, image2, output, diff, threshold, includeAa: includeAA } = argv;
 
     const options: VisualDiffOptions = {
         output,
-        diffAlgorithm: diffAlgorithm as VisualDiffOptions['diffAlgorithm'],
+        diff: diff as VisualDiffOptions['diff'],
         threshold,
         includeAA,
     };
